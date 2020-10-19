@@ -122,11 +122,12 @@ class MotionPlanning(Drone):
         # TODO: read lat0, lon0 from colliders into floating point values
         
         # TODO: set home position to (lon0, lat0, 0)
+        self.set_home_position(self._longitude, self._latitude, 0)
 
         # TODO: retrieve current global position
- 
+	gp = self.global_position
         # TODO: convert to current local position using global_to_local()
-        
+        self.set_local_position(global_to_local(gp))
         print('global home {0}, position {1}, local position {2}'.format(self.global_home, self.global_position,
                                                                          self.local_position))
         # Read in obstacle map
@@ -136,7 +137,7 @@ class MotionPlanning(Drone):
         grid, north_offset, east_offset = create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
         # Define starting point on the grid (this is just grid center)
-        grid_start = (-north_offset, -east_offset)
+        grid_start = (self.local_position[0], self.local_position[1])
         # TODO: convert start position to current position rather than map center
         
         # Set goal as some arbitrary position on the grid
