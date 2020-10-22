@@ -1,7 +1,8 @@
 from enum import Enum
 from queue import PriorityQueue
 import numpy as np
-
+from bresenham import bresenham
+from shapely.geometry import Polygon, Point
 
 def create_grid(data, drone_altitude, safety_distance):
     """
@@ -106,8 +107,8 @@ def a_star(grid, h, start, goal):
             current_cost = 0.0
         else:              
             current_cost = branch[current_node][0]
-            
-        if current_node == goal:        
+
+        if current_node == goal:
             print('Found a path.')
             found = True
             break
@@ -143,4 +144,31 @@ def a_star(grid, h, start, goal):
 
 def heuristic(position, goal_position):
     return np.linalg.norm(np.array(position) - np.array(goal_position))
+
+
+def point(p):
+    return np.array([p[0], p[1], 1.]).reshape(1, -1)
+
+
+def collinearity_check(p1, p2, p3, epsilon=1e-6):
+    m = np.concatenate((p1, p2, p3), 0)
+    det = np.linalg.det(m)
+    return abs(det) < epsilon
+
+
+def prune_path(path):
+    pruned_path = [p for p in path]
+
+    i = 0
+    while i < len(pruned_path) - 2:
+        p1 = point(pruned_path[i])
+        p2 = point(pruned_path[i+1])
+        p3 = point(pruned_path[i+2])
+
+        if collinearity_check(p1, p2, p3):
+            pruned_path.remove(pruned_path[i+1])
+        else:
+            i += 1
+
+    return pruned_path
 
