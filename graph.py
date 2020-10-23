@@ -20,10 +20,11 @@ class Graph:
     def create_graph(self, nodes, k):
 
         tree = KDTree(nodes)
-
+        i = 0
         for n1 in nodes:
             ides = tree.query([n1], k, return_distance=False)[0]
-
+            print('process {0} nodes, ides nums {1}'.format(i, len(ides)))
+            i += 1
             for ind in ides:
                 n2 = nodes[ind]
                 if n1 == n2:

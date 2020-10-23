@@ -148,7 +148,9 @@ class MotionPlanning(Drone):
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
 
         # Define starting point on the grid (this is just grid center)
-        grid_start = (int(self.local_position[0] - north_offset), int(self.local_position[1] - east_offset))
+        grid_start = (int(self.local_position[0] - north_offset),
+                      int(self.local_position[1] - east_offset),
+                      TARGET_ALTITUDE)
         # TODO: convert start position to current position rather than map center
 
         # Set goal as some arbitrary position on the grid
@@ -159,7 +161,7 @@ class MotionPlanning(Drone):
             a_xgoal = np.random.randint(grid.shape[0])
             a_ygoal = np.random.randint(grid.shape[1])
 
-        grid_goal = (a_xgoal, a_ygoal)
+        grid_goal = (a_xgoal, a_ygoal, TARGET_ALTITUDE)
         # TODO: adapt to set goal as latitude / longitude position and convert
 
         # Run A* to find a path from start to goal
@@ -172,6 +174,8 @@ class MotionPlanning(Drone):
         sampler = Sampler(data)
         polygons = sampler.polygons
         nodes = sampler.sample(300)
+        nodes.append(grid_start)
+        nodes.append(grid_goal)
         print("Create %d sample nodes." % len(nodes))
 
         t0 = time.time()
