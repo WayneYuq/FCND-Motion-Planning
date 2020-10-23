@@ -5,7 +5,9 @@ from enum import Enum, auto
 
 import numpy as np
 
-from planning_utils import a_star, heuristic, create_grid, prune_path
+from planning_utils import a_star, a_star_graph, heuristic, create_grid, prune_path
+from sampling import Sampler
+from graph import Graph
 from udacidrone import Drone
 from udacidrone.connection import MavlinkConnection
 from udacidrone.messaging import MsgID
@@ -121,8 +123,16 @@ class MotionPlanning(Drone):
         self.target_position[2] = TARGET_ALTITUDE
 
         # TODO: read lat0, lon0 from colliders into floating point values
+        # I just use `open()` method and `f.readline()` to read the first line,
+        # which line it read depend on the times it calls, I just call it once so it's the first line,
+        # then slice out the number
+        with open('colliders.csv', 'r') as f:
+            first_line_data = f.readline().rstrip().split(', ')
+            lat0 = float(first_line_data[0][5:])
+            lon0 = float(first_line_data[1][5:])
 
         # TODO: set home position to (lon0, lat0, 0)
+        self.set_home_position(lon0, lat0, 0)
 
         # TODO: retrieve current global position
 
@@ -132,14 +142,6 @@ class MotionPlanning(Drone):
                                                                          self.local_position))
         # Read in obstacle map
         data = np.loadtxt('colliders.csv', delimiter=',', dtype='Float64', skiprows=2)
-
-        # lat0 = float(np.floor(np.min(data[:, 0] - data[:, 3])))
-        # lon0 = float(np.floor(np.min(data[:, 1] - data[:, 4])))
-        # self.set_home_position(lon0, lat0, 0)
-
-        print(
-            'Now again global home {0}, position {1}, local position {2}'.format(self.global_home, self.global_position,
-                                                                                 self.local_position))
 
         # Define a grid for a particular altitude and safety margin around obstacles
         grid, north_offset, east_offset = create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
@@ -151,7 +153,7 @@ class MotionPlanning(Drone):
 
         # Set goal as some arbitrary position on the grid
         a_xgoal = np.random.randint(grid.shape[0])
-        a_ygoal = np.random.randint(grid.shape[1])
+        a_ygoal = np.random.randint(grid. shape[1])
 
         while grid[a_xgoal, a_ygoal] == 1:
             a_xgoal = np.random.randint(grid.shape[0])
@@ -164,7 +166,21 @@ class MotionPlanning(Drone):
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
         # or move to a different search space such as a graph (not done here)
         print('Local Start and Goal: ', grid_start, grid_goal)
-        path, _ = a_star(grid, heuristic, grid_start, grid_goal)
+
+        # Convert grid search to graph
+        # path, _ = a_star(grid, heuristic, grid_start, grid_goal)
+        sampler = Sampler(data)
+        polygons = sampler.polygons
+        nodes = sampler.sample(300)
+        print("Create %d sample nodes." % len(nodes))
+
+        t0 = time.time()
+        g = Graph(polygons)
+        g.create_graph(nodes, 10)
+        print("Took {0} seconds to build graph".format(time.time() - t0))
+        print("Number of edges:", len(g.edges))
+
+        path, _ = a_star_graph(g.graph, heuristic, grid_start, grid_goal)
 
         # TODO: prune path to minimize number of waypoints
         # TODO (if you're feeling ambitious): Try a different approach altogether!

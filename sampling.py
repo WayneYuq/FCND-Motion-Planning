@@ -62,7 +62,7 @@ class Sampler:
 
         self._zmin = 0
         self._zmax = 20
-        self._max_poly_xy = 2 * np.max(data[:, 3], data[:, 4])
+        self._max_poly_xy = 2 * np.max((data[:, 3], data[:, 4]))
         centers = np.array([p.center for p in self._polygons])
         self._tree = KDTree(centers, metric='euclidean')
 

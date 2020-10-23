@@ -2,7 +2,6 @@ from enum import Enum
 from queue import PriorityQueue
 import numpy as np
 from bresenham import bresenham
-from shapely.geometry import Polygon, Point
 
 def create_grid(data, drone_altitude, safety_distance):
     """
@@ -56,6 +55,10 @@ class Action(Enum):
     EAST = (0, 1, 1)
     NORTH = (-1, 0, 1)
     SOUTH = (1, 0, 1)
+    NORTH_WEST = (-1, -1, np.sqrt(2))
+    NORTH_EAST = (-1, 1, np.sqrt(2))
+    SOUTH_WEST = (1, -1, np.sqrt(2))
+    SOUTH_EAST = (1, 1, np.sqrt(2))
 
     @property
     def cost(self):
@@ -85,6 +88,14 @@ def valid_actions(grid, current_node):
         valid_actions.remove(Action.WEST)
     if y + 1 > m or grid[x, y + 1] == 1:
         valid_actions.remove(Action.EAST)
+    if x - 1 < 0 or y - 1 < 0 or grid[x-1, y-1] == 1:
+        valid_actions.remove(Action.NORTH_WEST)
+    if x - 1 < 0 or y + 1 > m or grid[x-1, y+1] == 1:
+        valid_actions.remove(Action.NORTH_EAST)
+    if x + 1 > n or y - 1 < 0 or grid[x + 1, y - 1] == 1:
+        valid_actions.remove(Action.SOUTH_WEST)
+    if x + 1 > n or y + 1 > m or grid[x + 1, y + 1] == 1:
+        valid_actions.remove(Action.SOUTH_EAST)
 
     return valid_actions
 
@@ -141,6 +152,53 @@ def a_star(grid, h, start, goal):
     return path[::-1], path_cost
 
 
+def a_star_graph(graph, h, start, goal):
+    """A* to work with NetworkX graphs."""
+    queue = PriorityQueue()
+    queue.put((0, start))
+    visited = set(start)
+
+    branch = {}
+    found = False
+
+    while not queue.empty():
+        item = queue.get()
+        current_cost = item[0]
+        current_node = item[1]
+
+        if current_node == goal:
+            print('Found a path.')
+            found = True
+            break
+        else:
+            for next_node in graph[current_node]:
+                cost = graph.edges[current_node, next_node]['weight']
+                new_cost = current_cost + cost + h(next_node, goal)
+
+                if next_node not in visited:
+                    visited.add(next_node)
+                    queue.put((new_cost, next_node))
+
+                    branch[next_node] = (new_cost, current_node)
+
+    path = []
+    path_cost = 0
+    if found:
+        # retrace steps
+        path = []
+        n = goal
+        path_cost = branch[n][0]
+        while branch[n][1] != start:
+            path.append(branch[n][1])
+            n = branch[n][1]
+        path.append(branch[n][1])
+    else:
+        print('**********************')
+        print('Failed to find a path!')
+        print('**********************')
+
+    return path[::-1], path_cost
+
 
 def heuristic(position, goal_position):
     return np.linalg.norm(np.array(position) - np.array(goal_position))
@@ -171,4 +229,3 @@ def prune_path(path):
             i += 1
 
     return pruned_path
-
