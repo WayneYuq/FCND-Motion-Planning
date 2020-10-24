@@ -122,7 +122,7 @@ class MotionPlanning(Drone):
 
         self.target_position[2] = TARGET_ALTITUDE
 
-        # TODO: read lat0, lon0 from colliders into floating point values
+        # Read lat0, lon0 from colliders into floating point values
         # I just use `open()` method and `f.readline()` to read the first line,
         # which line it read depend on the times it calls, I just call it once so it's the first line,
         # then slice out the number
@@ -131,54 +131,42 @@ class MotionPlanning(Drone):
             lat0 = float(first_line_data[0][5:])
             lon0 = float(first_line_data[1][5:])
 
-        # TODO: set home position to (lon0, lat0, 0)
+        # Set home position
         self.set_home_position(lon0, lat0, 0)
 
-        # TODO: retrieve current global position
+        # Retrieve current global position
         gp = self.global_position  # (lon, lat, up)
 
-        # TODO: convert to current local position using global_to_local()
+        # Convert to current local position
         lp = global_to_local(gp, self.global_home)  # (north, east, down)
 
         print('global home {0}, position {1}, local position {2}'.format(self.global_home, self.global_position,
                                                                          self.local_position))
 
         # Read in obstacle map
+        t0 = time.time()
         data = np.loadtxt('colliders.csv', delimiter=',', dtype='Float64', skiprows=2)
+        print("Took {0} seconds to load csv file".format(time.time() - t0))
 
-        # Define a grid for a particular altitude and safety margin around obstacles
-        grid, north_offset, east_offset = create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
-        print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
-
-        # Define starting point on the grid (this is just grid center)
+        # Convert start position to current position
         start = (lp[0], lp[1], TARGET_ALTITUDE)
 
-        # TODO: convert start position to current position rather than map center
+        t0 = time.time()
+        sampler = Sampler(data, self.global_home)
+        print("Took {0} seconds to initialize Sampler class".format(time.time() - t0))
 
-        # Set goal as some arbitrary position on the grid
-        a_xgoal = np.random.randint(grid.shape[0])
-        a_ygoal = np.random.randint(grid. shape[1])
+        # Set goal as some arbitrary position on the map
+        goal = sampler.sample_goal()
 
-        while grid[a_xgoal, a_ygoal] == 1:
-            a_xgoal = np.random.randint(grid.shape[0])
-            a_ygoal = np.random.randint(grid.shape[1])
-
-        goal = (a_xgoal, a_ygoal, TARGET_ALTITUDE)
-        # TODO: adapt to set goal as latitude / longitude position and convert
-
-        # Run A* to find a path from start to goal
-        # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
-        # or move to a different search space such as a graph (not done here)
         print('Local Start and Goal: ', start, goal)
 
         # Convert grid search to graph
-        # path, _ = a_star(grid, heuristic, start, goal)
-        sampler = Sampler(data)
+        t0 = time.time()
         polygons = sampler.polygons
-        nodes = sampler.sample(300)
+        nodes = sampler.sample(500)
         nodes.append(start)
         nodes.append(goal)
-        print("Create %d sample nodes." % len(nodes))
+        print("Took {0} seconds to create {1} sample nodes.".format(time.time() - t0,  len(nodes)))
 
         t0 = time.time()
         g = Graph(polygons)
@@ -186,17 +174,20 @@ class MotionPlanning(Drone):
         print("Took {0} seconds to build graph".format(time.time() - t0))
         print("Number of edges:", len(g.edges))
 
+        t0 = time.time()
         path, _ = a_star_graph(g.graph, heuristic, start, goal)
+        print("Took {0} seconds to search path".format(time.time() - t0))
 
-        # TODO: prune path to minimize number of waypoints
-        # TODO (if you're feeling ambitious): Try a different approach altogether!
+        # Prune path to minimize number of waypoints
+        t0 = time.time()
         path = prune_path(path)
+        print("Took {0} seconds to prune path".format(time.time() - t0))
 
         # Convert path to waypoints
-        waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
-        # Set self.waypoints
+        waypoints = [[p[0], p[1], p[2], 0]for p in path]
         self.waypoints = waypoints
-        # TODO: send waypoints to sim (this is just for visualization of waypoints)
+
+        # Send waypoints to sim (this is just for visualization of waypoints)
         self.send_waypoints()
 
     def start(self):

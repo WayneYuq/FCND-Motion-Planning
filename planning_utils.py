@@ -3,6 +3,7 @@ from queue import PriorityQueue
 import numpy as np
 from bresenham import bresenham
 
+
 def create_grid(data, drone_altitude, safety_distance):
     """
     Returns a grid representation of a 2D configuration space
@@ -201,20 +202,24 @@ def a_star_graph(graph, h, start, goal):
 
 
 def heuristic(position, goal_position):
+
     return np.linalg.norm(np.array(position) - np.array(goal_position))
 
 
 def point(p):
+
     return np.array([p[0], p[1], 1.]).reshape(1, -1)
 
 
 def collinearity_check(p1, p2, p3, epsilon=1e-6):
+
     m = np.concatenate((p1, p2, p3), 0)
     det = np.linalg.det(m)
     return abs(det) < epsilon
 
 
 def prune_path(path):
+
     pruned_path = [p for p in path]
 
     i = 0

@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.neighbors import KDTree
 from shapely.geometry import Polygon, Point
 
+
 class Poly:
 
     def __init__(self, coords, height):
@@ -52,8 +53,10 @@ def extract_polygons(data):
 
 class Sampler:
 
-    def __init__(self, data):
+    def __init__(self, data, global_home):
         self._polygons = extract_polygons(data)
+        self._global_home = global_home
+
         self._xmin = np.min(data[:, 0] - data[:, 3])
         self._xmax = np.max(data[:, 0] + data[:, 3])
 
@@ -67,6 +70,7 @@ class Sampler:
         self._tree = KDTree(centers, metric='euclidean')
 
     def sample(self, num_samples):
+
         xvals = np.random.uniform(self._xmin, self._xmax, num_samples)
         yvals = np.random.uniform(self._ymin, self._ymax, num_samples)
         zvals = np.random.uniform(self._zmin, self._zmax, num_samples)
@@ -87,6 +91,31 @@ class Sampler:
                 pts.append(s)
 
         return pts
+
+    def sample_goal(self):
+
+        goal = []
+
+        while True:
+            xvals = np.random.uniform(self._xmin, self._xmax)
+            yvals = np.random.uniform(self._ymin, self._ymax)
+            zvals = np.random.uniform(self._zmin, self._zmax)
+
+            in_collision = False
+            idxs = list(self._tree.query_radius(np.array([xvals, yvals]).reshape(1, -1),
+                                                r=self._max_poly_xy)[0])
+            if len(idxs) > 0:
+                for ind in idxs:
+                    p = self._polygons[int(ind)]
+                    if p.contains([xvals, yvals, zvals]) and p.height >= zvals:
+                        in_collision = True
+            if not in_collision:
+                goal.append(xvals)
+                goal.append(yvals)
+                goal.append(zvals)
+                break
+
+        return tuple(goal)
 
     @property
     def polygons(self):
