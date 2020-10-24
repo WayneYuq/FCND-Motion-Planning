@@ -135,11 +135,14 @@ class MotionPlanning(Drone):
         self.set_home_position(lon0, lat0, 0)
 
         # TODO: retrieve current global position
+        gp = self.global_position  # (lon, lat, up)
 
         # TODO: convert to current local position using global_to_local()
+        lp = global_to_local(gp, self.global_home)  # (north, east, down)
 
         print('global home {0}, position {1}, local position {2}'.format(self.global_home, self.global_position,
                                                                          self.local_position))
+
         # Read in obstacle map
         data = np.loadtxt('colliders.csv', delimiter=',', dtype='Float64', skiprows=2)
 
@@ -148,9 +151,8 @@ class MotionPlanning(Drone):
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
 
         # Define starting point on the grid (this is just grid center)
-        grid_start = (int(self.local_position[0] - north_offset),
-                      int(self.local_position[1] - east_offset),
-                      TARGET_ALTITUDE)
+        start = (lp[0], lp[1], TARGET_ALTITUDE)
+
         # TODO: convert start position to current position rather than map center
 
         # Set goal as some arbitrary position on the grid
@@ -161,21 +163,21 @@ class MotionPlanning(Drone):
             a_xgoal = np.random.randint(grid.shape[0])
             a_ygoal = np.random.randint(grid.shape[1])
 
-        grid_goal = (a_xgoal, a_ygoal, TARGET_ALTITUDE)
+        goal = (a_xgoal, a_ygoal, TARGET_ALTITUDE)
         # TODO: adapt to set goal as latitude / longitude position and convert
 
         # Run A* to find a path from start to goal
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
         # or move to a different search space such as a graph (not done here)
-        print('Local Start and Goal: ', grid_start, grid_goal)
+        print('Local Start and Goal: ', start, goal)
 
         # Convert grid search to graph
-        # path, _ = a_star(grid, heuristic, grid_start, grid_goal)
+        # path, _ = a_star(grid, heuristic, start, goal)
         sampler = Sampler(data)
         polygons = sampler.polygons
         nodes = sampler.sample(300)
-        nodes.append(grid_start)
-        nodes.append(grid_goal)
+        nodes.append(start)
+        nodes.append(goal)
         print("Create %d sample nodes." % len(nodes))
 
         t0 = time.time()
@@ -184,7 +186,7 @@ class MotionPlanning(Drone):
         print("Took {0} seconds to build graph".format(time.time() - t0))
         print("Number of edges:", len(g.edges))
 
-        path, _ = a_star_graph(g.graph, heuristic, grid_start, grid_goal)
+        path, _ = a_star_graph(g.graph, heuristic, start, goal)
 
         # TODO: prune path to minimize number of waypoints
         # TODO (if you're feeling ambitious): Try a different approach altogether!
