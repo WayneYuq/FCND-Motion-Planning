@@ -23,7 +23,7 @@ class Graph:
         i = 0
         for n1 in nodes:
             ides = tree.query([n1], k, return_distance=False)[0]
-            print('process {0} nodes, ides nums {1}'.format(i, len(ides)), flush=True)
+            # print('process {0} nodes, ides nums {1}'.format(i, len(ides)), flush=True)
             i += 1
             for ind in ides:
                 n2 = nodes[ind]

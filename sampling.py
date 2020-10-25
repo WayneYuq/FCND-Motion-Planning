@@ -36,6 +36,7 @@ class Poly:
 def extract_polygons(data):
 
     polygons = []
+    centers = []
     for i in range(data.shape[0]):
         north, east, alt, d_north, d_east, d_alt = data[i, :]
 
@@ -48,13 +49,14 @@ def extract_polygons(data):
 
         p = Poly(corners, height)
         polygons.append(p)
+        centers.append((north, east))
 
-    return polygons
+    return polygons, centers
 
 class Sampler:
 
     def __init__(self, data, global_home):
-        self._polygons = extract_polygons(data)
+        self._polygons, centers = extract_polygons(data)
         self._global_home = global_home
 
         self._xmin = np.min(data[:, 0] - data[:, 3])
@@ -66,7 +68,7 @@ class Sampler:
         self._zmin = 0
         self._zmax = 20
         self._max_poly_xy = 2 * np.max((data[:, 3], data[:, 4]))
-        centers = np.array([p.center for p in self._polygons])
+        centers = np.array(centers)
         self._tree = KDTree(centers, metric='euclidean')
 
     def sample(self, num_samples):

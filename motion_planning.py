@@ -184,7 +184,7 @@ class MotionPlanning(Drone):
         print("Took {0} seconds to prune path".format(time.time() - t0))
 
         # Convert path to waypoints
-        waypoints = [[p[0], p[1], p[2], 0]for p in path]
+        waypoints = [[int(p[0]), int(p[1]), TARGET_ALTITUDE, 0]for p in path]
         self.waypoints = waypoints
 
         # Send waypoints to sim (this is just for visualization of waypoints)
@@ -209,7 +209,7 @@ if __name__ == "__main__":
     parser.add_argument('--host', type=str, default='127.0.0.1', help="host address, i.e. '127.0.0.1'")
     args = parser.parse_args()
 
-    conn = MavlinkConnection('tcp:{0}:{1}'.format(args.host, args.port), timeout=60)
+    conn = MavlinkConnection('tcp:{0}:{1}'.format(args.host, args.port), timeout=3000)
     drone = MotionPlanning(conn)
     time.sleep(1)
 
