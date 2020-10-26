@@ -122,7 +122,7 @@ class MotionPlanning(Drone):
 
         self.target_position[2] = TARGET_ALTITUDE
 
-        # Read lat0, lon0 from colliders into floating point values
+        # Read lat0, lon0 from colliders.csv into floating point values
         # I just use `open()` method and `f.readline()` to read the first line,
         # which line it read depend on the times it calls, I just call it once so it's the first line,
         # then slice out the number
@@ -154,27 +154,26 @@ class MotionPlanning(Drone):
         t0 = time.time()
         sampler = Sampler(data, self.global_home)
         print("Took {0} seconds to initialize Sampler class".format(time.time() - t0))
+        t0 = time.time()
+        nodes = sampler.sample(30)
 
         # Set goal as some arbitrary position on the map
-        goal = sampler.sample_goal()
+        goal = sampler.sample_goal(nodes, 37.793, -122.4)
 
         print('Local Start and Goal: ', start, goal)
 
-        # Convert grid search to graph
-        t0 = time.time()
-        polygons = sampler.polygons
-        nodes = sampler.sample(500)
         nodes.append(start)
         nodes.append(goal)
         print("Took {0} seconds to create {1} sample nodes.".format(time.time() - t0,  len(nodes)))
 
         t0 = time.time()
-        g = Graph(polygons)
+        g = Graph(sampler.polygons, sampler.polygon_center_tree, sampler.max_poly_xy)
         g.create_graph(nodes, 10)
         print("Took {0} seconds to build graph".format(time.time() - t0))
         print("Number of edges:", len(g.edges))
 
         t0 = time.time()
+        # Convert grid search to graph
         path, _ = a_star_graph(g.graph, heuristic, start, goal)
         print("Took {0} seconds to search path".format(time.time() - t0))
 

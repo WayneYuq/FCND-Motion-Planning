@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.neighbors import KDTree
 from shapely.geometry import Polygon, Point
+from udacidrone.frame_utils import global_to_local
 
 
 class Poly:
@@ -94,31 +95,38 @@ class Sampler:
 
         return pts
 
-    def sample_goal(self):
+    def sample_goal(self, nodes, lat, lon):
 
-        goal = []
+        zvals = np.random.uniform(self._zmin, self._zmax)
+        lp = global_to_local((lon, lat, 0), self._global_home)  # (north, east, down)
+        goal = (lp[0], lp[1], zvals)
 
-        while True:
-            xvals = np.random.uniform(self._xmin, self._xmax)
-            yvals = np.random.uniform(self._ymin, self._ymax)
-            zvals = np.random.uniform(self._zmin, self._zmax)
+        in_collision = False
+        idxs = list(self._tree.query_radius(np.array([goal[0], goal[1]]).reshape(1, -1),
+                                            r=self._max_poly_xy)[0])
+        if len(idxs) > 0:
+            for ind in idxs:
+                p = self._polygons[int(ind)]
+                if p.contains([goal[0], goal[1], goal[2]]) and p.height >= goal[2]:
+                    in_collision = True
+        if not in_collision:
+            return goal
 
-            in_collision = False
-            idxs = list(self._tree.query_radius(np.array([xvals, yvals]).reshape(1, -1),
-                                                r=self._max_poly_xy)[0])
-            if len(idxs) > 0:
-                for ind in idxs:
-                    p = self._polygons[int(ind)]
-                    if p.contains([xvals, yvals, zvals]) and p.height >= zvals:
-                        in_collision = True
-            if not in_collision:
-                goal.append(xvals)
-                goal.append(yvals)
-                goal.append(zvals)
-                break
+        # If the lat and lon given by parameters is collide with obstacles,
+        # Set it to the closest point
+        nodes = np.array(nodes)
+        min_dist_idx = np.linalg.norm(np.array(goal) - nodes, axis=1).argmin()
 
-        return tuple(goal)
+        return nodes[min_dist_idx][0], nodes[min_dist_idx][1], zvals
 
     @property
     def polygons(self):
         return self._polygons
+
+    @property
+    def max_poly_xy(self):
+        return self._max_poly_xy
+
+    @property
+    def polygon_center_tree(self):
+        return self._tree
