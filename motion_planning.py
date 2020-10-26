@@ -13,6 +13,15 @@ from udacidrone.connection import MavlinkConnection
 from udacidrone.messaging import MsgID
 from udacidrone.frame_utils import global_to_local
 
+"""
+Udacity Instructor Reviews:
+At the moment there is some mismatch between the colliders map and actual buildings in the scene. 
+To ensure success build in a 5+ m safety margin around obstacles. Try some different goal locations. 
+Also try starting from a different point in the city. Your reviewer will also try some random 
+locations so be sure to test your solution! There is no firm constraint or requirement on how 
+accurately you land exactly on the goal location. Just so long as your planner functions as expected.
+"""
+
 
 class States(Enum):
     MANUAL = auto()
