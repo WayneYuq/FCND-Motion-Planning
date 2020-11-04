@@ -1,10 +1,11 @@
 # FCND - 3D Motion Planning
 
+
 ### 1: Explain what's going on in `motion_planning.py` and `planning_utils.py`
 
 - The main class `MotionPlanning` in `motion_planning.py` is response to the events from the drone such as velocity, state or position.
-- Each events has a callback function so it's _Event Driven Programming_.
-- When the instance drone start, it arm and take a path planning, if found a path, then takeoff and follow the waypoints.
+- Each events has a callback function so it's a _Event Driven Programming_.
+- When the instance drone start, it arms and take a path planning, if found a path, then takeoff and follow the waypoints.
 - There's some different from `backyard_flyer_solution.py`, it need to planning a path itself and send the waypoints to
   the simulator for visualization.
 - In `plan_path` method first set the home position depend on the first line of csv file `lat0, lon0`, create grid or
